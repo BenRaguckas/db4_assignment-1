@@ -1,0 +1,12 @@
+version: '3'
+services:
+  mysql:
+    container_name: mysql-db4
+    image: mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    ports:
+      - '3306:3306'
+    volumes:
+      - './create.sql:/docker-entrypoint-initdb.d/1.sql'
+      - './insert_head.sql:/docker-entrypoint-initdb.d/2.sql'
