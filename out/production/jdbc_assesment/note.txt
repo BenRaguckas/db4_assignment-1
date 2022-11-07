@@ -1,0 +1,6 @@
+using data found:
+https://www.kaggle.com/datasets/utshabkumarghosh/android-app-market-on-google-play
+
+
+setup docker-compose for easier database dev access (use command):
+docker-compose up --force-recreate -d
