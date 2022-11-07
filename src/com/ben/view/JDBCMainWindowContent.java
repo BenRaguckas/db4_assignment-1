@@ -204,7 +204,9 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         //	Clear button
         if (target == clearButton) clearFields();
 
-        if (target == insertButton || target == deleteButton || target == updateButton) {
+        if (target == insertButton) insertData();
+
+        if (target == deleteButton || target == updateButton) {
             try {
                 String update;
                 if (target == insertButton) {
@@ -225,20 +227,6 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             }
         }
 
-        if (target == insertButton) {
-            try {
-                String updateTemp = "INSERT INTO details VALUES(" +
-                        null + ",'" + AppNameTF.getText() + "','" + CategoryTF.getText() + "'," + RatingTF.getText() + ",'" + ReviewsTF.getText() + "','"
-                        + SizeTF.getText() + "','" + InstallsTF.getText() + "'," + TypeTF.getText() + "," + PriceTF.getText() + ");";
-
-                stmt.executeUpdate(updateTemp);
-
-            } catch (SQLException sqle) {
-                System.err.println("Error with  insert:\n" + sqle.toString());
-            } finally {
-                TableModel.refreshFromDB(stmt);
-            }
-        }
         if (target == deleteButton) {
 
             try {
@@ -325,7 +313,25 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
     }
 
     private void insertData() {
-
+        try {
+            CallableStatement cs = con.prepareCall("{ CALL insert_item(?,?,?,?,?,?,?,?,?,?,?,?) }");
+            cs.setString(1, AppNameTF.getText());
+            cs.setString(2, CategoryTF.getText());
+            cs.setString(3, RatingTF.getText());
+            cs.setString(4, ReviewsTF.getText());
+            cs.setString(5, SizeTF.getText());
+            cs.setString(6, InstallsTF.getText());
+            cs.setString(7, TypeTF.getText());
+            cs.setString(8, PriceTF.getText());
+            cs.setString(9, ContentTF.getText());
+            cs.setString(10, GenresTF.getText());
+            cs.setString(11, CVersionTF.getText());
+            cs.setString(12, AVersionTF.getText());
+            cs.execute();
+            TableModel.refreshFromDB(stmt);
+        } catch (SQLException e) {
+            errorMessage(e, "Error while inserting");
+        }
     }
 
 

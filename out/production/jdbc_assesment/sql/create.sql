@@ -3,7 +3,7 @@ CREATE DATABASE A00276965;
 USE A00276965;
 DROP TABLE IF EXISTS android_apps;
 CREATE TABLE android_apps(
-   id             INTEGER        NOT NULL PRIMARY KEY,
+   id             INTEGER        NOT NULL PRIMARY KEY AUTO_INCREMENT,
    app            VARCHAR(256)   NOT NULL,
    category       VARCHAR(64)    NOT NULL,
    rating         DECIMAL(7,1),
