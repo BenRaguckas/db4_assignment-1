@@ -206,39 +206,8 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
 
         if (target == insertButton) insertData();
 
-        if (target == deleteButton || target == updateButton) {
-            try {
-                String update;
-                if (target == insertButton) {
-                    update = "";
+        if (target == deleteButton) select();
 
-                } else if (target == deleteButton) {
-                    update = "";
-
-                } else {
-                    update = "";
-
-                }
-                stmt.executeUpdate(update);
-            } catch (SQLException exception) {
-                System.err.println(exception);
-            } finally {
-                TableModel.refreshFromDB(stmt);
-            }
-        }
-
-        if (target == deleteButton) {
-
-            try {
-                String updateTemp = "DELETE FROM details WHERE id = " + IDTF.getText() + ";";
-                stmt.executeUpdate(updateTemp);
-
-            } catch (SQLException sqle) {
-                System.err.println("Error with delete:\n" + sqle.toString());
-            } finally {
-                TableModel.refreshFromDB(stmt);
-            }
-        }
         if (target == updateButton) {
             try {
                 String updateTemp = "UPDATE details SET " +
@@ -299,6 +268,14 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
 
     }
 
+    private void select() {
+        int row = TableofDBContents.getSelectedRow();
+        if (row == -1)
+            System.out.println("not pog");
+        else
+            System.out.println(TableModel.getValueAt(row,0));
+    }
+
 
     private void clearFields() {
         IDTF.setText("");
@@ -314,7 +291,8 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
 
     private void insertData() {
         try {
-            CallableStatement cs = con.prepareCall("{ CALL insert_item(?,?,?,?,?,?,?,?,?,?,?,?) }");
+            //  Call prepared procedure for inserting
+            CallableStatement cs = con.prepareCall("{ CALL insert_item(?,?,?,?,?,?,?,?,?,?,?,?,?) }");
             cs.setString(1, AppNameTF.getText());
             cs.setString(2, CategoryTF.getText());
             cs.setString(3, RatingTF.getText());
@@ -327,13 +305,14 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             cs.setString(10, GenresTF.getText());
             cs.setString(11, CVersionTF.getText());
             cs.setString(12, AVersionTF.getText());
+            cs.registerOutParameter(13, Types.INTEGER);
             cs.execute();
             TableModel.refreshFromDB(stmt);
-        } catch (SQLException e) {
+            infoMessage("Inserted with ID:" + cs.getInt(13), "Inserted successfully");
+        } catch (Exception e) {
             errorMessage(e, "Error while inserting");
         }
     }
-
 
     private void writeToFile(ResultSet rs) {
         try {

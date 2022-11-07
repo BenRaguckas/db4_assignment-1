@@ -1,3 +1,5 @@
+USE A00276965;
+
 DROP PROCEDURE IF EXISTS insert_item;
 
 DELIMITER //
@@ -13,7 +15,8 @@ CREATE PROCEDURE insert_item (
     content		VARCHAR(32),
     genres		VARCHAR(256),
     current_ver	VARCHAR(64),
-    android_ver	VARCHAR(64)
+    android_ver	VARCHAR(64),
+    OUT out_ID  INTEGER
 )
 BEGIN
 DECLARE sql_error TINYINT DEFAULT false;
@@ -23,6 +26,7 @@ START TRANSACTION;
 		VALUES (app, category, rating, reviews, size, installs, type, price, content, genres, NOW(), current_ver, android_ver);
     IF sql_error = FALSE THEN
 		COMMIT;
+		SELECT LAST_INSERT_ID() INTO out_ID;
 	ELSE
 		ROLLBACK;
 	END IF;
