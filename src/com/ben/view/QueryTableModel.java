@@ -51,7 +51,7 @@ class QueryTableModel extends AbstractTableModel {
         stmt = stmt1;
         try {
             //Execute the query and store the result set and its metadata
-            rs = stmt.executeQuery("SELECT * FROM android_apps");
+            rs = stmt.executeQuery("SELECT * FROM apps_list");
             ResultSetMetaData meta = rs.getMetaData();
 
             //to get the number of columns

@@ -10,12 +10,13 @@ import java.sql.*;
 
 public class JDBCMainWindowContent extends JInternalFrame implements ActionListener {
     private final int
-            INPUT_WIDTH = 1,
+            INPUT_WIDTH = 14,
             EXPORT_WIDTH = 12;
     private final Dimension
             CRUD_DIM = new Dimension(360, 400),
             EXPORT_DIM = new Dimension(500, 200),
-            CONTENT_DIM = new Dimension(1000, 400);
+            CONTENT_DIM = new Dimension(1000, 400),
+            BUTTON_SIZE = new Dimension(100, 30);
     private final GridLayout
             CRUD_LAYOUT = new GridLayout(13, 2),
             EXPORT_LAYOUT = new GridLayout(3, 2);
@@ -55,6 +56,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             insertButton = new JButton("Insert"),
             exportButton = new JButton("Export"),
             deleteButton = new JButton("Delete"),
+            selectButton = new JButton("Select"),
             clearButton = new JButton("Clear"),
             NumLectures = new JButton("NumLecturesForDepartment:"),
             avgAgeDepartment = new JButton("AvgAgeForDepartment"),
@@ -137,22 +139,25 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         exportButtonPanel.setLocation(3, 400);
         content.add(exportButtonPanel);
 
-        insertButton.setSize(100, 30);
-        deleteButton.setSize(100, 30);
-        updateButton.setSize(100, 30);
-        exportButton.setSize(100, 30);
-        clearButton.setSize(100, 30);
+        insertButton.setSize(BUTTON_SIZE);
+        deleteButton.setSize(BUTTON_SIZE);
+        updateButton.setSize(BUTTON_SIZE);
+        exportButton.setSize(BUTTON_SIZE);
+        selectButton.setSize(BUTTON_SIZE);
+        clearButton.setSize(BUTTON_SIZE);
 
         insertButton.setLocation(370, 10);
         deleteButton.setLocation(370, 60);
         updateButton.setLocation(370, 110);
         exportButton.setLocation(370, 160);
-        clearButton.setLocation(370, 210);
+        selectButton.setLocation(370, 210);
+        clearButton.setLocation(370, 260);
 
         insertButton.addActionListener(this);
         updateButton.addActionListener(this);
         exportButton.addActionListener(this);
         deleteButton.addActionListener(this);
+        selectButton.addActionListener(this);
         clearButton.addActionListener(this);
 
         this.ListAllDepartments.addActionListener(this);
@@ -163,6 +168,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         content.add(updateButton);
         content.add(exportButton);
         content.add(deleteButton);
+        content.add(selectButton);
         content.add(clearButton);
 
 
@@ -201,81 +207,89 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
     //event handling
     public void actionPerformed(ActionEvent e) {
         Object target = e.getSource();
-        //	Clear button
+
         if (target == clearButton) clearFields();
-
         if (target == insertButton) insertData();
+        if (target == selectButton) selectRow();
+        if (target == updateButton) updateItem();
+        if (target == deleteButton) deleteItem();
 
-        if (target == deleteButton) select();
+    }
 
-        if (target == updateButton) {
-            try {
-                String updateTemp = "UPDATE details SET " +
-                        "firstName = '" + AppNameTF.getText() +
-                        "', lastName = '" + CategoryTF.getText() +
-                        "', age = " + RatingTF.getText() +
-                        ", gender ='" + ReviewsTF.getText() +
-                        "', position = '" + SizeTF.getText() +
-                        "', department = '" + InstallsTF.getText() +
-                        "', rate = " + TypeTF.getText() +
-                        ", hours = " + PriceTF.getText() +
-                        " where id = " + IDTF.getText();
-
-
-                stmt.executeUpdate(updateTemp);
-                //these lines do nothing but the table updates when we access the db.
-                rs = stmt.executeQuery("SELECT * from details ");
-                rs.next();
-                rs.close();
-            } catch (SQLException sqle) {
-                System.err.println("Error with  update:\n" + sqle.toString());
-            } finally {
-                TableModel.refreshFromDB(stmt);
+    private void deleteItem() {
+        if (!IDTF.getText().isEmpty() && IDTF.getText().matches("\\d+")) {
+            int input = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to delete item with ID:" + IDTF.getText(),
+                    "Confirm deletion",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+            if (input == 0) {
+                try {
+                    PreparedStatement ps = con.prepareStatement("DELETE FROM android_apps WHERE id=?");
+                    ps.setString(1, IDTF.getText());
+                    int updates = ps.executeUpdate();
+                    ps.close();
+                    TableModel.refreshFromDB(stmt);
+                    if (updates > 0)
+                        infoMessage("Item ID:" + IDTF.getText() + " deleted successfully.", "Deleted successfully");
+                    else
+                        infoMessage("Unable to delete item ID:" + IDTF.getText(), "Delete failed");
+                } catch (Exception e) {
+                    errorMessage(e, "Error while deleting");
+                }
             }
+        } else {
+            infoMessage("Please enter item ID for deletion.","No ID specified");
         }
+    }
 
-        /////////////////////////////////////////////////////////////////////////////////////
-        //I have only added functionality of 2 of the button on the lower right of the template
-        ///////////////////////////////////////////////////////////////////////////////////
-
-        if (target == this.ListAllDepartments) {
-
-            cmd = "select distinct department from details;";
-
-            try {
-                rs = stmt.executeQuery(cmd);
-                writeToFile(rs);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-
-        }
-
-        if (target == this.NumLectures) {
-            String deptName = this.NumLecturesTF.getText();
-
-            cmd = "select department, count(*) " + "from details " + "where department = '" + deptName + "';";
-
-            System.out.println(cmd);
-            try {
-                rs = stmt.executeQuery(cmd);
-                writeToFile(rs);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-
+    private void updateItem() {
+        try {
+            CallableStatement cs = con.prepareCall("{ CALL update_item(?,?,?,?,?,?,?,?,?,?,?,?,?) }");
+            cs.setString(1, IDTF.getText());
+            cs.setString(2, AppNameTF.getText());
+            cs.setString(3, CategoryTF.getText());
+            cs.setString(4, RatingTF.getText());
+            cs.setString(5, ReviewsTF.getText());
+            cs.setString(6, SizeTF.getText());
+            cs.setString(7, InstallsTF.getText());
+            cs.setString(8, TypeTF.getText());
+            cs.setString(9, PriceTF.getText());
+            cs.setString(10, ContentTF.getText());
+            cs.setString(11, GenresTF.getText());
+            cs.setString(12, CVersionTF.getText());
+            cs.setString(13, AVersionTF.getText());
+            cs.execute();
+            TableModel.refreshFromDB(stmt);
+            infoMessage("Updated item ID:" + IDTF.getText(), "Updated successfully");
+        } catch (Exception e) {
+            errorMessage(e, "Error while updating");
         }
 
     }
 
-    private void select() {
+    private void selectRow() {
         int row = TableofDBContents.getSelectedRow();
         if (row == -1)
-            System.out.println("not pog");
-        else
-            System.out.println(TableModel.getValueAt(row,0));
+            infoMessage("Highlight a row for selection.","No row highlighted");
+        else{
+            IDTF.setText(TableModel.getValueAt(row, 0).toString());
+            AppNameTF.setText(TableModel.getValueAt(row, 1).toString());
+            CategoryTF.setText(TableModel.getValueAt(row, 2).toString());
+            RatingTF.setText(TableModel.getValueAt(row, 3).toString());
+            ReviewsTF.setText(TableModel.getValueAt(row, 4).toString());
+            SizeTF.setText(TableModel.getValueAt(row, 5).toString());
+            InstallsTF.setText(TableModel.getValueAt(row, 6).toString());
+            TypeTF.setText(TableModel.getValueAt(row, 7).toString());
+            PriceTF.setText(TableModel.getValueAt(row, 8).toString());
+            ContentTF.setText(TableModel.getValueAt(row, 9).toString());
+            GenresTF.setText(TableModel.getValueAt(row, 10).toString());
+            CVersionTF.setText(TableModel.getValueAt(row, 12).toString());
+            AVersionTF.setText(TableModel.getValueAt(row, 13).toString());
+        }
     }
-
 
     private void clearFields() {
         IDTF.setText("");
@@ -287,6 +301,10 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         InstallsTF.setText("");
         TypeTF.setText("");
         PriceTF.setText("");
+        ContentTF.setText("");
+        GenresTF.setText("");
+        CVersionTF.setText("");
+        AVersionTF.setText("");
     }
 
     private void insertData() {

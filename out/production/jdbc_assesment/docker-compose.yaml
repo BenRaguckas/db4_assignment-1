@@ -13,3 +13,4 @@ services:
       - './sql/default_view.sql:/docker-entrypoint-initdb.d/3.sql'
       - './sql/insert_item.sql:/docker-entrypoint-initdb.d/4.sql'
       - './sql/update_item.sql:/docker-entrypoint-initdb.d/5.sql'
+      - './sql/backup_delete.sql:/docker-entrypoint-initdb.d/6.sql'
