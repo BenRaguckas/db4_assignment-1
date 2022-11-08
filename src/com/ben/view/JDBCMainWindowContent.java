@@ -1,5 +1,7 @@
 package com.ben.view;
 
+import com.mysql.cj.xdevapi.Table;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.io.FileWriter;
@@ -7,6 +9,12 @@ import java.io.PrintWriter;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.Vector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class JDBCMainWindowContent extends JInternalFrame implements ActionListener {
     private final int
@@ -213,6 +221,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         if (target == selectButton) selectRow();
         if (target == updateButton) updateItem();
         if (target == deleteButton) deleteItem();
+        if (target == exportButton) writeToFile();
 
     }
 
@@ -332,28 +341,13 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
-    private void writeToFile(ResultSet rs) {
+    private void writeToFile() {
         try {
-            System.out.println("In writeToFile");
-            FileWriter outputFile = new FileWriter("Sheila.csv");
-            PrintWriter printWriter = new PrintWriter(outputFile);
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int numColumns = rsmd.getColumnCount();
-
-            for (int i = 0; i < numColumns; i++) {
-                printWriter.print(rsmd.getColumnLabel(i + 1) + ",");
-            }
-            printWriter.print("\n");
-            while (rs.next()) {
-                for (int i = 0; i < numColumns; i++) {
-                    printWriter.print(rs.getString(i + 1) + ",");
-                }
-                printWriter.print("\n");
-                printWriter.flush();
-            }
-            printWriter.close();
+            PrintWriter pw = new PrintWriter(new FileWriter("./output/test.csv"));
+            pw.println(Arrays.stream(TableModel.headers).collect(Collectors.joining(",")));
+            TableModel.modelData.stream().map(row -> Arrays.stream((String[])row).collect(Collectors.joining(","))).forEach(pw::println);
         } catch (Exception e) {
-            e.printStackTrace();
+            errorMessage(e, "Error while exporting");
         }
     }
 
