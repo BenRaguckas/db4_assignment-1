@@ -1,6 +1,9 @@
 package com.ben.view;
 
-import com.mysql.cj.xdevapi.Table;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.jdbc.JDBCCategoryDataset;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -8,13 +11,14 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Vector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class JDBCMainWindowContent extends JInternalFrame implements ActionListener {
     private final int
@@ -27,7 +31,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             BUTTON_SIZE = new Dimension(100, 30);
     private final GridLayout
             CRUD_LAYOUT = new GridLayout(13, 2),
-            EXPORT_LAYOUT = new GridLayout(3, 2);
+            EXPORT_LAYOUT = new GridLayout(4, 2);
 
     String cmd = null;
     private Connection con = null;
@@ -48,8 +52,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             InstallsTF = new JTextField(INPUT_WIDTH),
             TypeTF = new JTextField(INPUT_WIDTH),
             PriceTF = new JTextField(INPUT_WIDTH),
-            NumLecturesTF = new JTextField(EXPORT_WIDTH),
-            avgAgeDepartmentTF = new JTextField(EXPORT_WIDTH),
+            exportTF = new JTextField("android_apps.csv",EXPORT_WIDTH),
             ContentTF = new JTextField(INPUT_WIDTH),
             GenresTF = new JTextField(INPUT_WIDTH),
             CVersionTF = new JTextField(INPUT_WIDTH),
@@ -62,14 +65,14 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
     private final JButton
             updateButton = new JButton("Update"),
             insertButton = new JButton("Insert"),
-            exportButton = new JButton("Export"),
             deleteButton = new JButton("Delete"),
             selectButton = new JButton("Select"),
             clearButton = new JButton("Clear"),
-            NumLectures = new JButton("NumLecturesForDepartment:"),
-            avgAgeDepartment = new JButton("AvgAgeForDepartment"),
-            ListAllDepartments = new JButton("ListAllDepartments"),
-            ListAllPositions = new JButton("ListAllPositions");
+            exportButton = new JButton("Export to file"),
+            listGenresButton = new JButton("List all genres"),
+            listCategoriesButton = new JButton("List all categories"),
+            listContentButton = new JButton("List all content ratings"),
+            showCharts = new JButton("Show Charts");
 
 
     public JDBCMainWindowContent(String aTitle) {
@@ -137,12 +140,15 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         exportButtonPanel.setLayout(EXPORT_LAYOUT);
         exportButtonPanel.setBackground(Color.lightGray);
         exportButtonPanel.setBorder(BorderFactory.createTitledBorder(lineBorder, "Export Data"));
-        exportButtonPanel.add(NumLectures);
-        exportButtonPanel.add(NumLecturesTF);
-        exportButtonPanel.add(avgAgeDepartment);
-        exportButtonPanel.add(avgAgeDepartmentTF);
-        exportButtonPanel.add(ListAllDepartments);
-        exportButtonPanel.add(ListAllPositions);
+        exportButtonPanel.add(exportButton);
+        exportTF.setHorizontalAlignment(SwingConstants.CENTER);
+        exportButtonPanel.add(exportTF);
+        exportButtonPanel.add(new JSeparator());
+        exportButtonPanel.add(new JSeparator());
+        exportButtonPanel.add(listGenresButton);
+        exportButtonPanel.add(listCategoriesButton);
+        exportButtonPanel.add(listContentButton);
+        exportButtonPanel.add(showCharts);
         exportButtonPanel.setSize(EXPORT_DIM);
         exportButtonPanel.setLocation(3, 400);
         content.add(exportButtonPanel);
@@ -150,31 +156,30 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         insertButton.setSize(BUTTON_SIZE);
         deleteButton.setSize(BUTTON_SIZE);
         updateButton.setSize(BUTTON_SIZE);
-        exportButton.setSize(BUTTON_SIZE);
         selectButton.setSize(BUTTON_SIZE);
         clearButton.setSize(BUTTON_SIZE);
 
         insertButton.setLocation(370, 10);
         deleteButton.setLocation(370, 60);
         updateButton.setLocation(370, 110);
-        exportButton.setLocation(370, 160);
-        selectButton.setLocation(370, 210);
-        clearButton.setLocation(370, 260);
+        selectButton.setLocation(370, 160);
+        clearButton.setLocation(370, 210);
 
         insertButton.addActionListener(this);
         updateButton.addActionListener(this);
-        exportButton.addActionListener(this);
         deleteButton.addActionListener(this);
         selectButton.addActionListener(this);
         clearButton.addActionListener(this);
 
-        this.ListAllDepartments.addActionListener(this);
-        this.NumLectures.addActionListener(this);
+        listCategoriesButton.addActionListener(this);
+        exportButton.addActionListener(this);
+        listGenresButton.addActionListener(this);
+        listContentButton.addActionListener(this);
+        showCharts.addActionListener(this);
 
 
         content.add(insertButton);
         content.add(updateButton);
-        content.add(exportButton);
         content.add(deleteButton);
         content.add(selectButton);
         content.add(clearButton);
@@ -222,7 +227,17 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         if (target == updateButton) updateItem();
         if (target == deleteButton) deleteItem();
         if (target == exportButton) writeToFile();
+        if (target == listGenresButton) showPopupTable("SELECT * FROM genres_list");
+        if (target == listCategoriesButton) showPopupTable("SELECT * FROM category_list");
+        if (target == listContentButton) showPopupTable("SELECT * FROM content_list");
+        if (target == showCharts) showChart();
 
+
+    }
+
+    private void showChart() {
+        var window = new ChartWindow(con);
+        window.setVisible(true);
     }
 
     private void deleteItem() {
@@ -284,19 +299,19 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         if (row == -1)
             infoMessage("Highlight a row for selection.","No row highlighted");
         else{
-            IDTF.setText(TableModel.getValueAt(row, 0).toString());
-            AppNameTF.setText(TableModel.getValueAt(row, 1).toString());
-            CategoryTF.setText(TableModel.getValueAt(row, 2).toString());
-            RatingTF.setText(TableModel.getValueAt(row, 3).toString());
-            ReviewsTF.setText(TableModel.getValueAt(row, 4).toString());
-            SizeTF.setText(TableModel.getValueAt(row, 5).toString());
-            InstallsTF.setText(TableModel.getValueAt(row, 6).toString());
-            TypeTF.setText(TableModel.getValueAt(row, 7).toString());
-            PriceTF.setText(TableModel.getValueAt(row, 8).toString());
-            ContentTF.setText(TableModel.getValueAt(row, 9).toString());
-            GenresTF.setText(TableModel.getValueAt(row, 10).toString());
-            CVersionTF.setText(TableModel.getValueAt(row, 12).toString());
-            AVersionTF.setText(TableModel.getValueAt(row, 13).toString());
+            IDTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 0),"").toString());
+            AppNameTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 1),"").toString());
+            CategoryTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 2),"").toString());
+            RatingTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 3),"").toString());
+            ReviewsTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 4),"").toString());
+            SizeTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 5),"").toString());
+            InstallsTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 6),"").toString());
+            TypeTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 7),"").toString());
+            PriceTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 8),"").toString());
+            ContentTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 9),"").toString());
+            GenresTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 10),"").toString());
+            CVersionTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 12),"").toString());
+            AVersionTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 13),"").toString());
         }
     }
 
@@ -343,11 +358,31 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
 
     private void writeToFile() {
         try {
-            PrintWriter pw = new PrintWriter(new FileWriter("./output/test.csv"));
-            pw.println(Arrays.stream(TableModel.headers).collect(Collectors.joining(",")));
-            TableModel.modelData.stream().map(row -> Arrays.stream((String[])row).collect(Collectors.joining(","))).forEach(pw::println);
+            String file_name = exportTF.getText();
+            PrintWriter pw = new PrintWriter(new FileWriter("./output/" + file_name));
+            pw.println(Arrays.stream(TableModel.headers).collect(Collectors.joining("\t")));
+            TableModel.modelData.stream().map(row -> Arrays.stream((String[])row).collect(Collectors.joining("\t"))).forEach(pw::println);
+            pw.close();
+            infoMessage("Exported to a file:" + file_name + "\nUsing \"\\t\" as delimiter.","Export success");
         } catch (Exception e) {
             errorMessage(e, "Error while exporting");
+        }
+    }
+
+    private void showPopupTable(String query) {
+        try {
+            rs = stmt.executeQuery(query);
+            String[] columns = new String[]{rs.getMetaData().getColumnName(1)};
+            ArrayList<String[]> dataList = new ArrayList<>();
+            while (rs.next())
+                dataList.add(new String[]{rs.getString(1)});
+            String[][] data = new String[dataList.size()][];
+            for (int i = 0; i < data.length; i++)
+                data[i] = dataList.get(i);
+            JTable table = new JTable(data, columns);
+            JOptionPane.showMessageDialog(this, table, "List of all " + columns[0], JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 

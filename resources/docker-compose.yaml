@@ -9,7 +9,7 @@ services:
       - '3306:3306'
     volumes:
       - './sql/create.sql:/docker-entrypoint-initdb.d/1.sql'
-      - './sql/populate_head.sql:/docker-entrypoint-initdb.d/2.sql'
+      - './sql/populate.sql:/docker-entrypoint-initdb.d/2.sql'
       - './sql/default_view.sql:/docker-entrypoint-initdb.d/3.sql'
       - './sql/insert_item.sql:/docker-entrypoint-initdb.d/4.sql'
       - './sql/update_item.sql:/docker-entrypoint-initdb.d/5.sql'
