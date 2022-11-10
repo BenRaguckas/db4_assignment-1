@@ -101,9 +101,9 @@ public class ChartWindow extends JFrame implements ActionListener {
                 ds.setValue(rs.getInt(2), rs.getString(1), "");
             }
             chart = ChartFactory.createBarChart(
-                    "Average rating by " + params[1],
+                    "App count by " + params[1],
                     params[1],
-                    "Rating (1 - 5)",
+                    "Number of apps",
                     ds,
                     PlotOrientation.VERTICAL,
                     true, true, false

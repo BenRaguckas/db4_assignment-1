@@ -56,6 +56,9 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             ContentTF = new JTextField(INPUT_WIDTH),
             GenresTF = new JTextField(INPUT_WIDTH),
             CVersionTF = new JTextField(INPUT_WIDTH),
+            listGenresTF = new JTextField(INPUT_WIDTH),
+            listCategoriesTF = new JTextField(INPUT_WIDTH),
+            listContentTF = new JTextField(INPUT_WIDTH),
             AVersionTF = new JTextField(INPUT_WIDTH);
 
 
@@ -143,15 +146,23 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         exportButtonPanel.add(exportButton);
         exportTF.setHorizontalAlignment(SwingConstants.CENTER);
         exportButtonPanel.add(exportTF);
-        exportButtonPanel.add(new JSeparator());
-        exportButtonPanel.add(new JSeparator());
         exportButtonPanel.add(listGenresButton);
+        exportButtonPanel.add(listGenresTF);
+        listGenresTF.setHorizontalAlignment(SwingConstants.CENTER);
         exportButtonPanel.add(listCategoriesButton);
+        exportButtonPanel.add(listCategoriesTF);
+        listCategoriesTF.setHorizontalAlignment(SwingConstants.CENTER);
         exportButtonPanel.add(listContentButton);
-        exportButtonPanel.add(showCharts);
+        exportButtonPanel.add(listContentTF);
+        listContentTF.setHorizontalAlignment(SwingConstants.CENTER);
         exportButtonPanel.setSize(EXPORT_DIM);
         exportButtonPanel.setLocation(3, 400);
         content.add(exportButtonPanel);
+
+
+        content.add(showCharts);
+        showCharts.setLocation(1100, 450);
+        showCharts.setSize(300,100);
 
         insertButton.setSize(BUTTON_SIZE);
         deleteButton.setSize(BUTTON_SIZE);
@@ -227,9 +238,27 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         if (target == updateButton) updateItem();
         if (target == deleteButton) deleteItem();
         if (target == exportButton) writeToFile();
-        if (target == listGenresButton) showPopupTable("SELECT * FROM genres_list");
-        if (target == listCategoriesButton) showPopupTable("SELECT * FROM category_list");
-        if (target == listContentButton) showPopupTable("SELECT * FROM content_list");
+        if (target == listGenresButton) {
+            String s = "SELECT * FROM genres_list";
+            if (listGenresTF.getText().isEmpty())
+                showPopupTable(s);
+            else
+                writeToFile(s, listGenresTF.getText());
+        }
+        if (target == listCategoriesButton) {
+            String s = "SELECT * FROM category_list";
+            if (listCategoriesTF.getText().isEmpty())
+                showPopupTable(s);
+            else
+                writeToFile(s, listCategoriesTF.getText());
+        }
+        if (target == listContentButton) {
+            String s = "SELECT * FROM content_list";
+            if (listContentTF.getText().isEmpty())
+                showPopupTable(s);
+            else
+                writeToFile(s, listContentTF.getText());
+        }
         if (target == showCharts) showChart();
 
 
@@ -366,6 +395,20 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             infoMessage("Exported to a file:" + file_name + "\nUsing \"\\t\" as delimiter.","Export success");
         } catch (Exception e) {
             errorMessage(e, "Error while exporting");
+        }
+    }
+
+    private void writeToFile(String query, String fileName) {
+        try {
+            PrintWriter pw = new PrintWriter(new FileWriter("./output/" + fileName));
+            rs = stmt.executeQuery(query);
+            pw.println(rs.getMetaData().getColumnName(1));
+            while (rs.next())
+                pw.println(rs.getString(1));
+            pw.close();
+            infoMessage("Exported to a file:" + fileName + "\nUsing \"\\t\" as delimiter.","Export success");
+        } catch (Exception e) {
+            errorMessage(e, "Failed to export data");
         }
     }
 
