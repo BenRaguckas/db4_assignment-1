@@ -1,11 +1,7 @@
 package com.ben.view;
 
-import javax.swing.*;
 import javax.swing.table.*;
-import java.awt.event.*;
-import java.awt.*;
 import java.sql.*;
-import java.io.*;
 import java.util.*;
 
 @SuppressWarnings("serial")

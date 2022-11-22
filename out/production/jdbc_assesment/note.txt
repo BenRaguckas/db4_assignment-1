@@ -1,6 +1,13 @@
 using data found:
 https://www.kaggle.com/datasets/utshabkumarghosh/android-app-market-on-google-play
 
-
-setup docker-compose for easier database dev access (use command):
+setup docker-compose for easier database dev access (use command from resources folder):
 docker-compose up --force-recreate -d
+
+Otherwise:
+
+setup_database.sql
+
+AND
+
+populate_full.sql (~10'000 items)   OR  populate_head.sql (100 items)

@@ -1,26 +1,24 @@
 package com.ben.view;
 
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.jdbc.JDBCCategoryDataset;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 public class JDBCMainWindowContent extends JInternalFrame implements ActionListener {
+    /**
+     * Introduced some global variables for easier referencing from the top of the code
+     * Rewrote many of the initiators to be more easy and streamline to read
+     * finalized the majority of items
+     * Introduced few new elements used by the ui
+     */
     private final int
             INPUT_WIDTH = 14,
             EXPORT_WIDTH = 12;
@@ -78,6 +76,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             showCharts = new JButton("Show Charts");
 
 
+    //  initialize table layout (move items around and changed some content)
     public JDBCMainWindowContent(String aTitle) {
         //setting up the GUI
         super(aTitle, false, false, false, false);
@@ -216,6 +215,9 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         TableModel.refreshFromDB(stmt);
     }
 
+    //  Staple method for connecting to given table of a database
+    //  Class.forName is classified to be redundant and was not needed in my testing
+    //      could be required if using xampp (a it is older version of mysql)
     public void initiate_db_conn() {
         try {
             //  Not needed
@@ -228,16 +230,20 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
-    //event handling
+    //  Button events
     public void actionPerformed(ActionEvent e) {
         Object target = e.getSource();
 
+        // Redirect simple buttons to corresponding methods
         if (target == clearButton) clearFields();
         if (target == insertButton) insertData();
         if (target == selectButton) selectRow();
         if (target == updateButton) updateItem();
         if (target == deleteButton) deleteItem();
         if (target == exportButton) writeToFile();
+        if (target == showCharts) showChart();
+
+        //  Simple check for text-field content to determine a method used (if empty show popup else write to file)
         if (target == listGenresButton) {
             String s = "SELECT * FROM genres_list";
             if (listGenresTF.getText().isEmpty())
@@ -259,18 +265,21 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             else
                 writeToFile(s, listContentTF.getText());
         }
-        if (target == showCharts) showChart();
 
 
     }
 
+    //  Button to open a new window to show charts
     private void showChart() {
         var window = new ChartWindow(con);
         window.setVisible(true);
     }
 
+    //  Sends preparedStatement to delete given item by ID
+    //  Delete is automatically caught and a backup is made in a separate table
     private void deleteItem() {
         if (!IDTF.getText().isEmpty() && IDTF.getText().matches("\\d+")) {
+            //  Show a confirm dialog (yes / no / cancel)
             int input = JOptionPane.showConfirmDialog(
                     this,
                     "Are you sure you want to delete item with ID:" + IDTF.getText(),
@@ -278,6 +287,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE
             );
+            //  if confirm is yes
             if (input == 0) {
                 try {
                     PreparedStatement ps = con.prepareStatement("DELETE FROM android_apps WHERE id=?");
@@ -285,6 +295,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
                     int updates = ps.executeUpdate();
                     ps.close();
                     TableModel.refreshFromDB(stmt);
+                    //  Check update count (if > 0 success, else failure)
                     if (updates > 0)
                         infoMessage("Item ID:" + IDTF.getText() + " deleted successfully.", "Deleted successfully");
                     else
@@ -298,6 +309,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    //  Uses prepared call function to update given ite with ID
     private void updateItem() {
         try {
             CallableStatement cs = con.prepareCall("{ CALL update_item(?,?,?,?,?,?,?,?,?,?,?,?,?) }");
@@ -323,11 +335,16 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
 
     }
 
+    //  Grabs data from table row selected and puts it into text fields
     private void selectRow() {
+        //  Get selected row of the table
         int row = TableofDBContents.getSelectedRow();
+        //  Check if any row is selected
         if (row == -1)
             infoMessage("Highlight a row for selection.","No row highlighted");
         else{
+            //  Grab values from table model (as table columns can be re-ordered breaking things) and put them into
+            //      corresponding text fields
             IDTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 0),"").toString());
             AppNameTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 1),"").toString());
             CategoryTF.setText(Objects.requireNonNullElse(TableModel.getValueAt(row, 2),"").toString());
@@ -344,6 +361,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    //  Clears all text fields
     private void clearFields() {
         IDTF.setText("");
         AppNameTF.setText("");
@@ -360,6 +378,9 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         AVersionTF.setText("");
     }
 
+    /**
+     * Grabs textbox inputs and uses it to populate a preparedCall for insert function
+     */
     private void insertData() {
         try {
             //  Call prepared procedure for inserting
@@ -376,6 +397,7 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
             cs.setString(10, GenresTF.getText());
             cs.setString(11, CVersionTF.getText());
             cs.setString(12, AVersionTF.getText());
+            //  Catch return value (inserted ID)
             cs.registerOutParameter(13, Types.INTEGER);
             cs.execute();
             TableModel.refreshFromDB(stmt);
@@ -385,11 +407,18 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    /**
+     * Takes the main table contents and writes them to a file with a specific delimiter
+     */
     private void writeToFile() {
         try {
             String file_name = exportTF.getText();
             PrintWriter pw = new PrintWriter(new FileWriter("./output/" + file_name));
+            //  Writes the headers in the first line
             pw.println(Arrays.stream(TableModel.headers).collect(Collectors.joining("\t")));
+            //  Collects rows and combines them into a string using specified delimiter and then writes each row / line
+            //  This is a fairly complex loop to stream the model into a map that is then used to combine into an array
+            //      of strings then is then joined into a single String using a delimiter and each row is written to file
             TableModel.modelData.stream().map(row -> Arrays.stream((String[])row).collect(Collectors.joining("\t"))).forEach(pw::println);
             pw.close();
             infoMessage("Exported to a file:" + file_name + "\nUsing \"\\t\" as delimiter.","Export success");
@@ -398,6 +427,11 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    /**
+     * Writes a single column to a file, the counterpart to showPopupTable
+     * @param query query to be output to a file
+     * @param fileName file name to output to
+     */
     private void writeToFile(String query, String fileName) {
         try {
             PrintWriter pw = new PrintWriter(new FileWriter("./output/" + fileName));
@@ -412,6 +446,10 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    /**
+     * Will display a single column table for given query (1st column)
+     * @param query mysql query used to retrieve table for display
+     */
     private void showPopupTable(String query) {
         try {
             rs = stmt.executeQuery(query);
@@ -429,6 +467,10 @@ public class JDBCMainWindowContent extends JInternalFrame implements ActionListe
         }
     }
 
+    /*  ==================================================
+        Methods for summarising dialog errors / messages
+        ==================================================
+     */
     private void infoMessage(String message, String title) {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
     }

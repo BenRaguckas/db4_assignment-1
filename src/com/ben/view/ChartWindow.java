@@ -14,11 +14,16 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 
 public class ChartWindow extends JFrame implements ActionListener {
+
+    //  window items that are used
     private final Connection con;
     private JFreeChart chart;
     private ChartPanel chartPanel;
+
+    //  Dropdown
     private final JComboBox<String> optionSelect = new JComboBox<>(new String[]{"Category","Content Rating", "Installs"});
 
+    //  buttons for table selection
     private final JButton
         pieChartButton = new JButton("Pie chart"),
         barChartButton = new JButton("Bar chart"),
@@ -28,6 +33,7 @@ public class ChartWindow extends JFrame implements ActionListener {
         init();
     }
 
+    //  Initializer using border layout for easier management
     private void init() {
         setLayout(new BorderLayout());
 
@@ -52,6 +58,12 @@ public class ChartWindow extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
     }
 
+    /**
+     * Takes a given preformatted string query and uses dropdown to determine when values should be inserted into it
+     * This is mostly noticeable with install_count column as it does sql computation instead of using raw  value
+     * @param s A pre-formatted query string that specifies 3 items with %s
+     * @return String array where [0] - formatted string; [1] - title / identifier of it
+     */
     private String[] basicSelector(String s) {
         String[] params = new String[2];
         //  Category
@@ -75,6 +87,11 @@ public class ChartWindow extends JFrame implements ActionListener {
         return params;
     }
 
+    /**
+     *  PieChart display. Creates a query that is best suited for displaying pie chart data
+     *  IT is formatted to apply dropdown selection
+     *  PreparedStatement could not be used as functionality cannot be inserted into prepared call
+     */
     private void pieChart() {
         try {
             var ds = new DefaultPieDataset();
@@ -91,6 +108,7 @@ public class ChartWindow extends JFrame implements ActionListener {
         }
     }
 
+    //  Similar methodology as pieChart() just different display
     private void barChart() {
         try {
             var ds = new DefaultCategoryDataset();
@@ -114,6 +132,7 @@ public class ChartWindow extends JFrame implements ActionListener {
         }
     }
 
+    //  Similar methodology as pieChart() just different display
     private void ratingChart() {
         try {
             var ds = new DefaultCategoryDataset();
@@ -137,14 +156,18 @@ public class ChartWindow extends JFrame implements ActionListener {
         }
     }
 
+    //  Remove a previous chart item and put a new chart into its place
     private void showChart() {
+        //  check if there is an item to be returned and remove it
         if (chartPanel != null)
             remove(chartPanel);
+        //  put new chart into its place
         chartPanel = new ChartPanel(chart);
         add(chartPanel, BorderLayout.CENTER);
         pack();
     }
 
+    //  Button actions
     @Override
     public void actionPerformed(ActionEvent e) {
         Object target = e.getSource();
